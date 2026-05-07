@@ -1,0 +1,7 @@
+sunchem-backend.exe
+sunchem.db
+sunchem.db-shm
+sunchem.db-wal
+uploads/
+*.log
+.env
