@@ -3,7 +3,7 @@ run-name: Build and Deploy SunChem Backend - ${{ github.ref_name }}
 
 on:
   push:
-    branches: [production]
+    branches: [main, production, feat/sunchem-backend]
 
 env:
   PUSH_REGISTRY: "100.123.85.116:3015"
