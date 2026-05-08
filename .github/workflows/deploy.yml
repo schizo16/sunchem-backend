@@ -79,7 +79,7 @@ jobs:
             BASE_DOMAIN="${REPO_NAME_DOMAIN}.genoract.com"
           fi
 
-          if [[ "${{ github.ref_name }}" == "production" ]]; then
+          if [[ "${{ github.ref_name }}" == "production" || "${{ github.ref_name }}" == "main" ]]; then
             echo "APP_ENV=production" >> $GITHUB_ENV
             echo "STACK_NAME=sunchem_api_prod" >> $GITHUB_ENV
             echo "BASE_DOMAIN=${BASE_DOMAIN}" >> $GITHUB_ENV
