@@ -24,8 +24,9 @@ func AutoMigrate(db *gorm.DB) error {
 }
 
 type User struct {
-	ID        uint      `gorm:"primaryKey"`
-	Username  string    `gorm:"uniqueIndex;size:100"`
+	ID         uint      `gorm:"primaryKey"`
+	GenoractID *string   `gorm:"uniqueIndex;size:255"`
+	Username   string    `gorm:"uniqueIndex;size:100"`
 	Password  string    `gorm:"size:255"`
 	Name      string    `gorm:"size:200"`
 	Role      string    `gorm:"size:20;default:employee"`
