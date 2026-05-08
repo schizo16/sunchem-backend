@@ -108,7 +108,7 @@ docker compose down
 
 | Service | Port | URL |
 |---------|------|-----|
-| Frontend (nginx) | 80 | http://localhost |
+| Frontend (Astro/Node) | 4321 | http://localhost:4321 |
 | Backend (Gin) | 8080 | http://localhost:8080/api |
 
 ---
