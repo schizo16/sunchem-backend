@@ -19,11 +19,15 @@ func LoadConfig() *Config {
 		wd, _ := os.Getwd()
 		dsn = wd + "/sunchem.db"
 	}
+	port := getEnv("PORT", "")
+	if port == "" {
+		port = getEnv("SERVER_PORT", "8080")
+	}
 	return &Config{
 		AppEnv:     getEnv("APP_ENV", "dev"),
 		DBType:     getEnv("DB_TYPE", "sqlite"),
 		DBDSN:      dsn,
-		ServerPort:           getEnv("SERVER_PORT", "8080"),
+		ServerPort:           port,
 		JWTSecret:            getEnv("JWT_SECRET", "sunchem-secret-key-change-in-production"),
 		UploadDir:            getEnv("UPLOAD_DIR", "./uploads"),
 		GenoractClientID:     getEnv("GENORACT_CLIENT_ID", ""),

@@ -104,6 +104,9 @@ func Run() {
 
 	api := r.Group("/api/v1")
 	{
+		api.GET("/health", func(c *gin.Context) {
+			c.JSON(200, gin.H{"status": "ok"})
+		})
 		api.POST("/auth/login", authH.Login)
 		api.POST("/auth/genoract/callback", authH.GenoractCallback)
 		api.POST("/traffic/track", trafficH.Track)
