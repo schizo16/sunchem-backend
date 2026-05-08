@@ -23,6 +23,15 @@ func (r *userRepository) FindByUsername(username string) (*domain.User, error) {
 	return &user, nil
 }
 
+func (r *userRepository) FindByGenoractID(genoractID string) (*domain.User, error) {
+	var user domain.User
+	err := r.db.Where("genoract_id = ?", genoractID).First(&user).Error
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
 func (r *userRepository) FindByID(id uint) (*domain.User, error) {
 	var user domain.User
 	err := r.db.First(&user, id).Error

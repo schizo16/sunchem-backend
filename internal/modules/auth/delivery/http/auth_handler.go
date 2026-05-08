@@ -46,3 +46,25 @@ func (h *AuthHandler) Me(c *gin.Context) {
 		"role":     c.GetString("role"),
 	})
 }
+
+type genoractCallbackReq struct {
+	Code        string `json:"code" binding:"required"`
+	RedirectURI string `json:"redirect_uri" binding:"required"`
+}
+
+func (h *AuthHandler) GenoractCallback(c *gin.Context) {
+	var req genoractCallbackReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		_ = c.Error(errors.ErrBadRequest)
+		return
+	}
+	token, user, appErr := h.uc.GenoractCallback(req.Code, req.RedirectURI)
+	if appErr != nil {
+		_ = c.Error(appErr)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"token": token,
+		"user":  user,
+	})
+}

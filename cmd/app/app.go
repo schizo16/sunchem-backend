@@ -80,7 +80,7 @@ func Run() {
 	trafficRepository := trafficRepo.NewTrafficRepository(database)
 	productRepository := productRepo.NewProductRepository(database)
 
-	authUseCase := authUC.NewAuthUseCase(userRepo, cfg.JWTSecret)
+	authUseCase := authUC.NewAuthUseCase(userRepo, cfg.JWTSecret, cfg.GenoractClientID, cfg.GenoractClientSecret)
 	blogUseCase := blogUC.NewBlogUseCase(blogRepository)
 	mediaUseCase := mediaUC.NewMediaUseCase(mediaRepository, cfg.UploadDir)
 	settingUseCase := settingUC.NewSettingUseCase(settingRepository)
@@ -105,6 +105,7 @@ func Run() {
 	api := r.Group("/api/v1")
 	{
 		api.POST("/auth/login", authH.Login)
+		api.POST("/auth/genoract/callback", authH.GenoractCallback)
 		api.POST("/traffic/track", trafficH.Track)
 
 		api.GET("/products", productH.List)

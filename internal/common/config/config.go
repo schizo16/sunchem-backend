@@ -6,9 +6,11 @@ type Config struct {
 	AppEnv     string
 	DBType     string
 	DBDSN      string
-	ServerPort string
-	JWTSecret  string
-	UploadDir  string
+	ServerPort           string
+	JWTSecret            string
+	UploadDir            string
+	GenoractClientID     string
+	GenoractClientSecret string
 }
 
 func LoadConfig() *Config {
@@ -21,9 +23,11 @@ func LoadConfig() *Config {
 		AppEnv:     getEnv("APP_ENV", "dev"),
 		DBType:     getEnv("DB_TYPE", "sqlite"),
 		DBDSN:      dsn,
-		ServerPort: getEnv("SERVER_PORT", "8080"),
-		JWTSecret:  getEnv("JWT_SECRET", "sunchem-secret-key-change-in-production"),
-		UploadDir:  getEnv("UPLOAD_DIR", "./uploads"),
+		ServerPort:           getEnv("SERVER_PORT", "8080"),
+		JWTSecret:            getEnv("JWT_SECRET", "sunchem-secret-key-change-in-production"),
+		UploadDir:            getEnv("UPLOAD_DIR", "./uploads"),
+		GenoractClientID:     getEnv("GENORACT_CLIENT_ID", ""),
+		GenoractClientSecret: getEnv("GENORACT_CLIENT_SECRET", ""),
 	}
 }
 
