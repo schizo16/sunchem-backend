@@ -1,0 +1,77 @@
+# ============================================================
+# SUNCHEM Docker Compose - Huong dan su dung
+# ============================================================
+#
+# Cau truc thu muc yeu cau:
+#   .
+#   ├── sunchem-backend/   (chua file docker-compose.yml nay)
+#   │   ├── Dockerfile
+#   │   ├── main.go
+#   │   └── cmd/
+#   └── sunchem-frontend/  (clone repo frontend nam cung cap)
+#       ├── Dockerfile.prod
+#       └── src/
+#
+# Cac lenh co ban:
+#
+#   1. Khoi tao (build + run lan dau):
+#      docker compose up -d --build
+#
+#   2. Chay binh thuong (khong build lai):
+#      docker compose up -d
+#
+#   3. Khoi dong lai (xoa cache DB cu de seed lai data moi):
+#      docker compose down -v
+#      docker compose up -d --build
+#
+#   4. Dung toan bo:
+#      docker compose down
+#
+#   5. Xem log:
+#      docker compose logs -f backend
+#      docker compose logs -f frontend
+#
+# Truy cap:
+#   Frontend : http://localhost:80
+#   Backend  : http://localhost:8080/api
+#
+# Ports:
+#   Frontend (nginx) : 80
+#   Backend (Gin/Go) : 8080
+#
+# ============================================================
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sunchem-backend
+    ports:
+      - "8080:8080"
+    environment:
+      - APP_ENV=dev
+      - DB_TYPE=sqlite
+      - DB_DSN=/app/data/sunchem.db
+      - SERVER_PORT=8080
+      - JWT_SECRET=sunchem-secret-key-change-in-production
+      - UPLOAD_DIR=/app/uploads
+    volumes:
+      - backend_data:/app/data
+      - backend_uploads:/app/uploads
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ../sunchem-frontend
+      dockerfile: Dockerfile.prod
+    container_name: sunchem-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  backend_data:
+  backend_uploads:
