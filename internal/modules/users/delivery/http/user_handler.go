@@ -72,8 +72,9 @@ func (h *UserHandler) Update(c *gin.Context) {
 		return
 	}
 	var req struct {
-		Name string `json:"name"`
-		Role string `json:"role"`
+		Name     string `json:"name"`
+		Role     string `json:"role"`
+		Password string `json:"password"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		_ = c.Error(errors.ErrBadRequest)
@@ -84,6 +85,14 @@ func (h *UserHandler) Update(c *gin.Context) {
 	}
 	if req.Role != "" {
 		user.Role = req.Role
+	}
+	if req.Password != "" {
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+		if err != nil {
+			_ = c.Error(errors.Wrap(err, 500, "HASH_ERROR", "Lỗi mã hóa mật khẩu"))
+			return
+		}
+		user.Password = string(hashedPassword)
 	}
 	if err := h.repo.Update(user); err != nil {
 		_ = c.Error(errors.Wrap(err, 500, "DB_ERROR", "Lỗi cập nhật"))

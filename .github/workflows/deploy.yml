@@ -87,9 +87,15 @@ jobs:
             BASE_DOMAIN="${REPO_NAME_DOMAIN}.genoract.com"
           fi
 
-          echo "APP_ENV=production" >> $GITHUB_ENV
-          echo "STACK_NAME=sunchem_api_prod" >> $GITHUB_ENV
-          echo "BASE_DOMAIN=${BASE_DOMAIN}" >> $GITHUB_ENV
+          if [[ "${{ github.ref_name }}" == "production" ]]; then
+            echo "APP_ENV=production" >> $GITHUB_ENV
+            echo "STACK_NAME=sunchem_api_prod" >> $GITHUB_ENV
+            echo "BASE_DOMAIN=${BASE_DOMAIN}" >> $GITHUB_ENV
+          else
+            echo "APP_ENV=dev" >> $GITHUB_ENV
+            echo "STACK_NAME=sunchem_api_dev" >> $GITHUB_ENV
+            echo "BASE_DOMAIN=dev.${BASE_DOMAIN}" >> $GITHUB_ENV
+          fi
 
       - name: SSH Deploy Command
         uses: appleboy/ssh-action@v1.0.3

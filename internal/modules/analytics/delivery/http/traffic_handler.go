@@ -25,6 +25,15 @@ func (h *TrafficHandler) Track(c *gin.Context) {
 		_ = c.Error(errors.ErrBadRequest)
 		return
 	}
+	
+	// Extract data from context if not provided by frontend
+	if event.IP == "" {
+		event.IP = c.ClientIP()
+	}
+	if event.Device == "" {
+		event.Device = c.Request.UserAgent()
+	}
+
 	if appErr := h.uc.Track(&event); appErr != nil {
 		_ = c.Error(appErr)
 		return
