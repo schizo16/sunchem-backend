@@ -1,0 +1,121 @@
+name: CI/CD Pipeline
+run-name: Build and Deploy SunChem Backend - ${{ github.ref_name }}
+
+on:
+  push:
+    branches: [production]
+
+env:
+  PUSH_REGISTRY: "100.123.85.116:3015"
+  PULL_REGISTRY: "git.genoract.com"
+  REGISTRY_GROUP: "genoract"
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Sync Deployment Configurations
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.MASTER_HOST }}
+          username: ${{ secrets.MASTER_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          source: "deploy/docker-compose.yml"
+          target: "~/sunchem-api"
+          strip_components: 0
+
+  build:
+    needs: prepare
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+
+      - name: Go Vet
+        run: go vet ./...
+
+      - name: Set SHORT_SHA for Image Tag
+        run: echo "SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-8)" >> $GITHUB_ENV
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          cleanup: false
+          config-inline: |
+            [registry."${{ env.PUSH_REGISTRY }}"]
+              http = true
+              insecure = true
+
+      - name: Login to Local Docker Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.PUSH_REGISTRY }}
+          username: ${{ secrets.REGISTRY_USER }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          cache-from: type=registry,ref=${{ env.PUSH_REGISTRY }}/${{ env.REGISTRY_GROUP }}/sunchem-api:buildcache
+          cache-to: type=registry,ref=${{ env.PUSH_REGISTRY }}/${{ env.REGISTRY_GROUP }}/sunchem-api:buildcache,mode=max
+          tags: |
+            ${{ env.PUSH_REGISTRY }}/${{ env.REGISTRY_GROUP }}/sunchem-api:latest
+            ${{ env.PUSH_REGISTRY }}/${{ env.REGISTRY_GROUP }}/sunchem-api:${{ env.SHORT_SHA }}
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve Deployment Metadata
+        run: |
+          echo "SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-8)" >> $GITHUB_ENV
+
+          BASE_DOMAIN="${{ secrets.DOMAIN }}"
+          if [[ -z "$BASE_DOMAIN" ]]; then
+            REPO_NAME_DOMAIN=$(echo ${{ github.event.repository.name }} | tr '[:upper:]' '[:lower:]' | sed 's/\.com$//')
+            BASE_DOMAIN="${REPO_NAME_DOMAIN}.genoract.com"
+          fi
+
+          echo "APP_ENV=production" >> $GITHUB_ENV
+          echo "STACK_NAME=sunchem_api_prod" >> $GITHUB_ENV
+          echo "BASE_DOMAIN=${BASE_DOMAIN}" >> $GITHUB_ENV
+
+      - name: SSH Deploy Command
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          REGISTRY_USER: ${{ secrets.REGISTRY_USER }}
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+          APP_ENV: ${{ env.APP_ENV }}
+          STACK_NAME: ${{ env.STACK_NAME }}
+          SHORT_SHA: ${{ env.SHORT_SHA }}
+          BASE_DOMAIN: ${{ env.BASE_DOMAIN }}
+        with:
+          host: ${{ secrets.MASTER_HOST }}
+          username: ${{ secrets.MASTER_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          envs: REGISTRY_USER,REGISTRY_PASSWORD,APP_ENV,STACK_NAME,SHORT_SHA,BASE_DOMAIN
+          script: |
+            set -e
+
+            export IMAGE_TAG=$SHORT_SHA
+            export APP_ENV=$APP_ENV
+            export NODE_TYPE=$APP_ENV
+            export DOMAIN=$BASE_DOMAIN
+
+            echo $REGISTRY_PASSWORD | docker login git.genoract.com -u $REGISTRY_USER --password-stdin
+
+            cd ~/sunchem-api/deploy
+            docker compose pull
+
+            docker stack deploy -c docker-compose.yml $STACK_NAME --with-registry-auth

@@ -1,0 +1,50 @@
+x-deploy-config: &common-deploy
+  replicas: 1
+  placement:
+    constraints:
+      - node.labels.type == ${NODE_TYPE:-production}
+  update_config:
+    order: start-first
+    failure_action: rollback
+    delay: 10s
+  restart_policy:
+    condition: on-failure
+
+services:
+  api:
+    image: 100.123.85.116:3015/genoract/sunchem-api:${IMAGE_TAG:-latest}
+    networks:
+      - genoract-public-net
+    environment:
+      APP_ENV: production
+      DB_TYPE: sqlite
+      DB_DSN: /app/data/sunchem.db
+      SERVER_PORT: 8080
+      JWT_SECRET: ${JWT_SECRET}
+      UPLOAD_DIR: /app/uploads
+    volumes:
+      - api_data:/app/data
+      - api_uploads:/app/uploads
+    deploy:
+      <<: *common-deploy
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.sunchem-api.rule=Host(`api.${DOMAIN:-sunchemvn.com}`)"
+        - "traefik.http.routers.sunchem-api.entrypoints=websecure"
+        - "traefik.http.routers.sunchem-api.tls=true"
+        - "traefik.http.routers.sunchem-api.tls.certresolver=myresolver"
+        - "traefik.http.services.sunchem-api.loadbalancer.server.port=8080"
+        - "traefik.http.routers.sunchem-api.middlewares=compress,api-cors"
+        - "traefik.http.middlewares.compress.compress=true"
+        - "traefik.http.middlewares.api-cors.headers.accesscontrolallowmethods=GET,POST,PUT,DELETE,OPTIONS"
+        - "traefik.http.middlewares.api-cors.headers.accesscontrolalloworiginlist=*"
+        - "traefik.http.middlewares.api-cors.headers.accesscontrolmaxage=100"
+        - "traefik.http.middlewares.api-cors.headers.addvaryheader=true"
+
+networks:
+  genoract-public-net:
+    external: true
+
+volumes:
+  api_data:
+  api_uploads:
