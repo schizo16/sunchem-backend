@@ -240,6 +240,7 @@ func Run() {
 			protected.PUT("/settings/oidc", settingH.SaveOIDC)
 			protected.GET("/settings/storage", settingH.GetStorage)
 			protected.PUT("/settings/storage", settingH.SaveStorage)
+			protected.PUT("/settings/general", settingH.SaveGeneral)
 
 			// Products
 			protected.POST("/products", productH.Create)

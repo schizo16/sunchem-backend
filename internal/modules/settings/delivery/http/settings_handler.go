@@ -42,10 +42,40 @@ func (h *SettingHandler) Save(c *gin.Context) {
 
 // GetGeneral returns general site settings (public endpoint)
 func (h *SettingHandler) GetGeneral(c *gin.Context) {
-	response.Success(c, gin.H{
+	settings, appErr := h.uc.GetAll()
+	if appErr != nil {
+		_ = c.Error(appErr)
+		return
+	}
+	result := gin.H{
 		"site_name":    "Sunchem",
 		"is_installed": true,
-	})
+	}
+	// merge persisted general settings
+	for k, v := range settings {
+		if len(k) > 8 && k[:8] == "general." {
+			result[k[8:]] = v
+		}
+	}
+	response.Success(c, result)
+}
+
+// SaveGeneral stores general site settings
+func (h *SettingHandler) SaveGeneral(c *gin.Context) {
+	var values map[string]string
+	if err := c.ShouldBindJSON(&values); err != nil {
+		_ = c.Error(errors.ErrBadRequest)
+		return
+	}
+	prefixed := make(map[string]string)
+	for k, v := range values {
+		prefixed["general."+k] = v
+	}
+	if appErr := h.uc.Save(prefixed); appErr != nil {
+		_ = c.Error(appErr)
+		return
+	}
+	response.SuccessWithMessage(c, "Đã lưu general settings", nil)
 }
 
 // GetOIDC returns OIDC settings from env
