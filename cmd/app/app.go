@@ -141,7 +141,13 @@ func Run() {
 	// ── Main API router (flat routes) ──────────────────────────────────────
 	api := r.Group("/api/v1")
 	{
+<<<<<<< HEAD
 		// Auth
+=======
+		api.GET("/health", func(c *gin.Context) {
+			c.JSON(200, gin.H{"status": "ok"})
+		})
+>>>>>>> github/main
 		api.POST("/auth/login", authH.Login)
 		api.POST("/auth/genoract/callback", authH.GenoractCallback)
 		api.GET("/auth/config", authH.GetConfig)

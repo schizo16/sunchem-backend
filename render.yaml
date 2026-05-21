@@ -1,21 +1,25 @@
 services:
   - type: web
     name: sunchem-backend
-    runtime: docker
-    dockerfilePath: ./Dockerfile
+    env: go
+    buildCommand: go build -o server .
+    startCommand: ./server
+    healthCheckPath: /api/v1/settings/general
     envVars:
-      - key: APP_ENV
-        value: prod
+      - key: PORT
+        value: "8080"
+      - key: SERVER_PORT
+        value: "8080"
+      - key: JWT_SECRET
+        generateValue: true
       - key: DB_TYPE
         value: sqlite
       - key: DB_DSN
-        value: /app/data/sunchem.db
-      - key: SERVER_PORT
-        value: 8080
-      - key: JWT_SECRET
-        generateValue: true
+        value: /var/data/sunchem.db
+      - key: APP_ENV
+        value: production
       - key: UPLOAD_DIR
-        value: /app/uploads
+        value: /var/data/uploads
       - key: GENORACT_CLIENT_ID
         sync: false
       - key: GENORACT_CLIENT_SECRET
@@ -27,7 +31,6 @@ services:
       - key: OIDC_REDIRECT_URI
         sync: false
     disk:
-      name: sunchem-data
-      mountPath: /app/data
-      sizeGB: 5
-    healthCheckPath: /api/v1/settings/general
+      name: data
+      mountPath: /var/data
+      sizeGB: 1

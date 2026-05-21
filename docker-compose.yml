@@ -32,12 +32,12 @@
 #      docker compose logs -f frontend
 #
 # Truy cap:
-#   Frontend : http://localhost:80
+#   Frontend : http://localhost:4321
 #   Backend  : http://localhost:8080/api
 #
 # Ports:
-#   Frontend (nginx) : 80
-#   Backend (Gin/Go) : 8080
+#   Frontend (Astro/Node) : 4321
+#   Backend (Gin/Go)      : 8080
 #
 # ============================================================
 
@@ -67,7 +67,7 @@ services:
       dockerfile: Dockerfile.prod
     container_name: sunchem-frontend
     ports:
-      - "80:80"
+      - "4321:4321"
     depends_on:
       - backend
     restart: unless-stopped
