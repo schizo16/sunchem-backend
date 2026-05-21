@@ -95,7 +95,7 @@ func (uc *AuthUseCase) buildTokenBundle(user *domain.User) (*TokenBundle, error)
 	return &TokenBundle{
 		AccessToken:   accessToken,
 		IDToken:       idToken,
-		IdentifyToken: accessToken,
+		IdentifyToken: idToken,
 		RefreshToken:  refreshToken,
 		Expiry:        expiry,
 	}, nil
