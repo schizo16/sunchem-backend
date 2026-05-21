@@ -77,6 +77,21 @@ func (h *AuthHandler) GenoractCallback(c *gin.Context) {
 	})
 }
 
+// LoginBundle authenticates with username/password and returns a full token bundle
+func (h *AuthHandler) LoginBundle(c *gin.Context) {
+	var req loginReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		_ = c.Error(errors.ErrBadRequest)
+		return
+	}
+	bundle, _, appErr := h.uc.LoginBundle(req.Username, req.Password)
+	if appErr != nil {
+		_ = c.Error(appErr)
+		return
+	}
+	response.Success(c, bundle)
+}
+
 // Token is an alias for GenoractCallback — exchanges OIDC code for a full token bundle
 func (h *AuthHandler) Token(c *gin.Context) {
 	var req genoractCallbackReq

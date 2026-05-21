@@ -147,6 +147,7 @@ func Run() {
 
 		// Auth
 		api.POST("/auth/login", authH.Login)
+		api.POST("/auth/login-bundle", authH.LoginBundle)
 		api.POST("/auth/genoract/callback", authH.GenoractCallback)
 		api.GET("/auth/config", authH.GetConfig)
 		api.POST("/auth/token", authH.Token)

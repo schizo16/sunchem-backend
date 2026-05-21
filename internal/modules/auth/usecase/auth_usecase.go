@@ -49,6 +49,8 @@ func (uc *AuthUseCase) SetOIDCConfig(authority, clientID, redirectURI string) {
 type OIDCConfig struct {
 	Authority   string `json:"authority"`
 	ClientID    string `json:"client_id"`
+	OIDCIssuer  string `json:"oidc_issuer"`
+	OIDCClientID string `json:"oidc_client_id"`
 	RedirectURI string `json:"redirect_uri"`
 	Scope       string `json:"scope"`
 }
@@ -65,10 +67,12 @@ type TokenBundle struct {
 // GetOIDCConfig returns the OIDC configuration
 func (uc *AuthUseCase) GetOIDCConfig() *OIDCConfig {
 	return &OIDCConfig{
-		Authority:   uc.oidcAuthority,
-		ClientID:    uc.oidcClientID,
-		RedirectURI: uc.oidcRedirectURI,
-		Scope:       "openid profile email offline_access",
+		Authority:    uc.oidcAuthority,
+		ClientID:     uc.oidcClientID,
+		OIDCIssuer:   uc.oidcAuthority,
+		OIDCClientID: uc.oidcClientID,
+		RedirectURI:  uc.oidcRedirectURI,
+		Scope:        "openid profile email offline_access",
 	}
 }
 
@@ -140,6 +144,22 @@ func (uc *AuthUseCase) Login(username, password string) (string, *domain.User, *
 		return "", nil, errors.Wrap(err, 500, "TOKEN_ERROR", "Lỗi tạo token")
 	}
 	return token, user, nil
+}
+
+// LoginBundle authenticates with username/password and returns a full token bundle
+func (uc *AuthUseCase) LoginBundle(username, password string) (*TokenBundle, *domain.User, *errors.AppError) {
+	user, err := uc.repo.FindByUsername(username)
+	if err != nil {
+		return nil, nil, errors.NewError(401, "INVALID_CREDENTIALS", "Tên đăng nhập hoặc mật khẩu không đúng")
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
+		return nil, nil, errors.NewError(401, "INVALID_CREDENTIALS", "Tên đăng nhập hoặc mật khẩu không đúng")
+	}
+	bundle, err := uc.buildTokenBundle(user)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, 500, "TOKEN_ERROR", "Lỗi tạo token")
+	}
+	return bundle, user, nil
 }
 
 type genoractTokenResponse struct {
