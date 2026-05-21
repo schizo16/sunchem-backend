@@ -4,10 +4,30 @@ import (
 	"fmt"
 	"time"
 
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
 func SeedDB(db *gorm.DB) {
+	// Always ensure admin user exists (upsert-style: INSERT OR IGNORE)
+	hashed, _ := bcrypt.GenerateFromPassword([]byte("sunchem2024"), bcrypt.DefaultCost)
+	users := []struct {
+		ID       uint
+		Username string
+		Password string
+		Name     string
+		Role     string
+	}{
+		{1, "admin", string(hashed), "Quản trị viên", "admin"},
+		{2, "nhanvien", string(hashed), "Nhân viên kinh doanh", "employee"},
+		{3, "marketing", string(hashed), "Nhân viên marketing", "employee"},
+	}
+	for _, u := range users {
+		db.Exec(`INSERT OR IGNORE INTO users (id, username, password, name, role) VALUES (?, ?, ?, ?, ?)`,
+			u.ID, u.Username, u.Password, u.Name, u.Role)
+	}
+	fmt.Println("[Seed] Admin users ensured")
+
 	var count int64
 	db.Raw("SELECT COUNT(*) FROM products").Scan(&count)
 	if count > 0 {
