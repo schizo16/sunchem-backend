@@ -145,6 +145,14 @@ func Run() {
 			c.JSON(200, gin.H{"status": "ok"})
 		})
 
+		// Setup status — always installed (single-tenant, no setup flow)
+		api.GET("/setup", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{"data": gin.H{"is_installed": true}})
+		})
+		api.POST("/setup", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{"data": gin.H{"is_installed": true}})
+		})
+
 		// Auth
 		api.POST("/auth/login", authH.Login)
 		api.POST("/auth/login-bundle", authH.LoginBundle)
