@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"sunchem-backend/internal/common/errors"
 	"sunchem-backend/internal/common/utils"
@@ -23,6 +24,9 @@ type AuthUseCase struct {
 	jwtSecret            string
 	genoractClientID     string
 	genoractClientSecret string
+	oidcAuthority        string
+	oidcClientID         string
+	oidcRedirectURI      string
 }
 
 func NewAuthUseCase(repo domain.IUserRepository, jwtSecret, clientID, clientSecret string) *AuthUseCase {
@@ -32,6 +36,95 @@ func NewAuthUseCase(repo domain.IUserRepository, jwtSecret, clientID, clientSecr
 		genoractClientID:     clientID,
 		genoractClientSecret: clientSecret,
 	}
+}
+
+// SetOIDCConfig sets the OIDC configuration (authority, clientID, redirectURI)
+func (uc *AuthUseCase) SetOIDCConfig(authority, clientID, redirectURI string) {
+	uc.oidcAuthority = authority
+	uc.oidcClientID = clientID
+	uc.oidcRedirectURI = redirectURI
+}
+
+// OIDCConfig holds the OIDC configuration returned to the frontend
+type OIDCConfig struct {
+	Authority   string `json:"authority"`
+	ClientID    string `json:"client_id"`
+	RedirectURI string `json:"redirect_uri"`
+	Scope       string `json:"scope"`
+}
+
+// TokenBundle holds the full token response expected by the blog-admin
+type TokenBundle struct {
+	AccessToken    string `json:"access_token"`
+	IDToken        string `json:"id_token"`
+	IdentifyToken  string `json:"identify_token"`
+	RefreshToken   string `json:"refresh_token"`
+	Expiry         string `json:"expiry"`
+}
+
+// GetOIDCConfig returns the OIDC configuration
+func (uc *AuthUseCase) GetOIDCConfig() *OIDCConfig {
+	return &OIDCConfig{
+		Authority:   uc.oidcAuthority,
+		ClientID:    uc.oidcClientID,
+		RedirectURI: uc.oidcRedirectURI,
+		Scope:       "openid profile email offline_access",
+	}
+}
+
+// buildTokenBundle creates the full token bundle given a user
+func (uc *AuthUseCase) buildTokenBundle(user *domain.User) (*TokenBundle, error) {
+	accessToken, err := utils.GenerateToken(uc.jwtSecret, user.ID, user.Username, user.Role)
+	if err != nil {
+		return nil, err
+	}
+	permissions := []string{"*"}
+	idToken, err := utils.GenerateIDToken(uc.jwtSecret, user.Username, permissions)
+	if err != nil {
+		return nil, err
+	}
+	refreshToken, err := utils.GenerateRefreshToken(uc.jwtSecret, user.ID, user.Username, user.Role)
+	if err != nil {
+		return nil, err
+	}
+	expiry := time.Now().Add(24 * time.Hour).UTC().Format(time.RFC3339)
+	return &TokenBundle{
+		AccessToken:   accessToken,
+		IDToken:       idToken,
+		IdentifyToken: accessToken,
+		RefreshToken:  refreshToken,
+		Expiry:        expiry,
+	}, nil
+}
+
+// Token is an alias for GenoractCallback — exchanges OIDC code for tokens
+func (uc *AuthUseCase) Token(code string, redirectURI string) (*TokenBundle, *domain.User, *errors.AppError) {
+	_, user, appErr := uc.GenoractCallback(code, redirectURI)
+	if appErr != nil {
+		return nil, nil, appErr
+	}
+	bundle, err := uc.buildTokenBundle(user)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, 500, "TOKEN_ERROR", "Lỗi tạo token bundle")
+	}
+	return bundle, user, nil
+}
+
+// RefreshToken validates a refresh token and issues a new token bundle
+func (uc *AuthUseCase) RefreshToken(refreshTokenStr string) (*TokenBundle, *errors.AppError) {
+	claims, err := utils.ParseToken(uc.jwtSecret, refreshTokenStr)
+	if err != nil {
+		return nil, errors.NewError(401, "INVALID_TOKEN", "Refresh token không hợp lệ")
+	}
+	user, err := uc.repo.FindByID(claims.UserID)
+	if err != nil {
+		return nil, errors.NewError(401, "INVALID_TOKEN", "Người dùng không tồn tại")
+	}
+	bundle, err := uc.buildTokenBundle(user)
+	if err != nil {
+		return nil, errors.Wrap(err, 500, "TOKEN_ERROR", "Lỗi tạo token bundle")
+	}
+	return bundle, nil
 }
 
 func (uc *AuthUseCase) Login(username, password string) (string, *domain.User, *errors.AppError) {

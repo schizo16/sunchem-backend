@@ -11,6 +11,9 @@ type Config struct {
 	UploadDir            string
 	GenoractClientID     string
 	GenoractClientSecret string
+	OIDCAuthority        string
+	OIDCClientID         string
+	OIDCRedirectURI      string
 }
 
 func LoadConfig() *Config {
@@ -28,6 +31,9 @@ func LoadConfig() *Config {
 		UploadDir:            getEnv("UPLOAD_DIR", "./uploads"),
 		GenoractClientID:     getEnv("GENORACT_CLIENT_ID", ""),
 		GenoractClientSecret: getEnv("GENORACT_CLIENT_SECRET", ""),
+		OIDCAuthority:        getEnv("OIDC_AUTHORITY", ""),
+		OIDCClientID:         getEnv("OIDC_CLIENT_ID", ""),
+		OIDCRedirectURI:      getEnv("OIDC_REDIRECT_URI", ""),
 	}
 }
 

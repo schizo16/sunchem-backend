@@ -16,6 +16,8 @@ func AutoMigrate(db *gorm.DB) error {
 		&Setting{},
 		&TrafficEvent{},
 		&Product{},
+		&Category{},
+		&Tag{},
 	); err != nil {
 		return fmt.Errorf("auto migration failed: %w", err)
 	}
@@ -85,4 +87,21 @@ type Product struct {
 	Highlights       string    `gorm:"type:text"`
 	CreatedAt        time.Time
 	UpdatedAt        time.Time
+}
+
+type Category struct {
+	ID          uint      `gorm:"primaryKey"`
+	Name        string    `gorm:"size:300"`
+	Slug        string    `gorm:"uniqueIndex;size:300"`
+	Description string    `gorm:"type:text"`
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
+type Tag struct {
+	ID        uint      `gorm:"primaryKey"`
+	Name      string    `gorm:"size:300"`
+	Slug      string    `gorm:"uniqueIndex;size:300"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }

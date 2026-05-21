@@ -14,6 +14,13 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
+// IDTokenClaims is used for id_token / identify_token returned to the blog-admin
+type IDTokenClaims struct {
+	Sub         string   `json:"sub"`
+	Permissions []string `json:"permissions"`
+	jwt.RegisteredClaims
+}
+
 func GenerateToken(secret string, userID uint, username, role string) (string, error) {
 	claims := Claims{
 		UserID:   userID,
@@ -21,6 +28,35 @@ func GenerateToken(secret string, userID uint, username, role string) (string, e
 		Role:     role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte(secret))
+}
+
+// GenerateIDToken creates an id_token JWT with permissions claim (24-hour expiry)
+func GenerateIDToken(secret, username string, permissions []string) (string, error) {
+	claims := IDTokenClaims{
+		Sub:         username,
+		Permissions: permissions,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte(secret))
+}
+
+// GenerateRefreshToken creates a long-lived refresh token (7-day expiry)
+func GenerateRefreshToken(secret string, userID uint, username, role string) (string, error) {
+	claims := Claims{
+		UserID:   userID,
+		Username: username,
+		Role:     role,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(7 * 24 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}

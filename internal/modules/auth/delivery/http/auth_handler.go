@@ -1,9 +1,11 @@
 package http
 
 import (
+	"fmt"
 	"net/http"
 
 	"sunchem-backend/internal/common/errors"
+	"sunchem-backend/internal/common/response"
 	"sunchem-backend/internal/modules/auth/usecase"
 
 	"github.com/gin-gonic/gin"
@@ -47,6 +49,12 @@ func (h *AuthHandler) Me(c *gin.Context) {
 	})
 }
 
+// GetConfig returns the OIDC configuration for the frontend
+func (h *AuthHandler) GetConfig(c *gin.Context) {
+	cfg := h.uc.GetOIDCConfig()
+	response.Success(c, cfg)
+}
+
 type genoractCallbackReq struct {
 	Code        string `json:"code" binding:"required"`
 	RedirectURI string `json:"redirect_uri" binding:"required"`
@@ -68,3 +76,54 @@ func (h *AuthHandler) GenoractCallback(c *gin.Context) {
 		"user":  user,
 	})
 }
+
+// Token is an alias for GenoractCallback — exchanges OIDC code for a full token bundle
+func (h *AuthHandler) Token(c *gin.Context) {
+	var req genoractCallbackReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		_ = c.Error(errors.ErrBadRequest)
+		return
+	}
+	bundle, user, appErr := h.uc.Token(req.Code, req.RedirectURI)
+	if appErr != nil {
+		_ = c.Error(appErr)
+		return
+	}
+	_ = user
+	response.Success(c, bundle)
+}
+
+type refreshReq struct {
+	RefreshToken string `json:"refresh_token" binding:"required"`
+}
+
+// RefreshToken validates a refresh token and issues a new token bundle
+func (h *AuthHandler) RefreshToken(c *gin.Context) {
+	var req refreshReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		_ = c.Error(errors.ErrBadRequest)
+		return
+	}
+	bundle, appErr := h.uc.RefreshToken(req.RefreshToken)
+	if appErr != nil {
+		_ = c.Error(appErr)
+		return
+	}
+	response.Success(c, bundle)
+}
+
+// UsersMe returns the current user profile in the format expected by the blog-admin
+func (h *AuthHandler) UsersMe(c *gin.Context) {
+	userID := c.GetUint("userID")
+	username := c.GetString("username")
+	role := c.GetString("role")
+	response.Success(c, gin.H{
+		"id":          fmt.Sprintf("%d", userID),
+		"username":    username,
+		"name":        username,
+		"role":        role,
+		"permissions": []string{"*"},
+	})
+}
+
+
