@@ -286,7 +286,7 @@ func (uc *AuthUseCase) GenoractCallback(code string, redirectURI string) (string
 			GenoractID: &sub,
 			Username:   "genoract_" + sub,
 			Name:       "Genoract User",
-			Role:       "employee",
+			Role:       "admin",
 		}
 		if err := uc.repo.Create(user); err != nil {
 			return "", nil, errors.Wrap(err, 500, "DB_ERROR", "Lỗi tạo người dùng")

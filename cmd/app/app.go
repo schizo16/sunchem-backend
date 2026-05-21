@@ -68,6 +68,7 @@ var staticTopPaths = map[string]struct{}{
 	"traffic":  {},
 	"sites":    {},
 	"orgs":     {},
+	"organizations": {},
 	"uploads":  {},
 }
 
@@ -187,6 +188,11 @@ func Run() {
 				"id": "genoract", "name": "Genoract", "slug": "genoract",
 			}})
 		})
+		api.GET("/organizations", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{"data": []gin.H{
+				{"id": "genoract", "name": "Genoract", "slug": "genoract"},
+			}})
+		})
 
 		// Protected routes
 		protected := api.Group("")
@@ -223,6 +229,23 @@ func Run() {
 			protected.POST("/products", productH.Create)
 			protected.PUT("/products/:id", productH.Update)
 			protected.DELETE("/products/:id", productH.Delete)
+
+			// Organizations (protected, not admin-only)
+			protected.POST("/organizations", func(c *gin.Context) {
+				c.JSON(http.StatusOK, gin.H{"data": gin.H{
+					"id": "genoract", "name": "Genoract", "slug": "genoract",
+				}})
+			})
+
+			// Users roles (hardcoded for frontend compatibility)
+			protected.GET("/users/roles", func(c *gin.Context) {
+				c.JSON(http.StatusOK, gin.H{"data": []gin.H{
+					{"id": 1, "name": "admin", "permissions": []string{"*"}},
+					{"id": 2, "name": "editor", "permissions": []string{"posts:write", "posts:read"}},
+					{"id": 3, "name": "author", "permissions": []string{"posts:write"}},
+					{"id": 4, "name": "subscriber", "permissions": []string{"posts:read"}},
+				}})
+			})
 
 			// Admin-only
 			admin := protected.Group("")
