@@ -101,6 +101,8 @@ func Run() {
 		seedAdmin(database)
 	}
 	SeedDB(database)
+	// All users are admins in single-tenant admin panel
+	database.Exec("UPDATE users SET role = 'admin' WHERE role = 'employee'")
 
 	userRepo := authRepo.NewUserRepository(database)
 	blogRepository := blogRepo.NewBlogRepository(database)
@@ -247,11 +249,13 @@ func Run() {
 				}})
 			})
 
-			// Admin-only
+			// Users listing (auth required, not admin-only)
+			protected.GET("/users", userH.List)
+
+			// Admin-only: user mutations
 			admin := protected.Group("")
 			admin.Use(adminMW)
 			{
-				admin.GET("/users", userH.List)
 				admin.POST("/users", userH.Create)
 				admin.PUT("/users/:id", userH.Update)
 				admin.DELETE("/users/:id", userH.Delete)
