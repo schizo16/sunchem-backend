@@ -7,7 +7,9 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"syscall"
+	"time"
 
 	"sunchem-backend/internal/common/config"
 	"sunchem-backend/internal/common/db"
@@ -54,6 +56,12 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
+
+// in-memory org storage (single-tenant, survives until restart)
+var orgsStore = []gin.H{
+	{"id": "genoract", "name": "Genoract", "slug": "genoract"},
+}
+var orgsMu sync.RWMutex
 
 // staticTopPaths lists all first-path-segments after /api/v1/ that are "flat" routes.
 // Requests starting with any of these are handled by the main router directly.
@@ -186,14 +194,20 @@ func Run() {
 			}})
 		})
 		api.GET("/orgs/my", func(c *gin.Context) {
-			c.JSON(http.StatusOK, gin.H{"data": gin.H{
-				"id": "genoract", "name": "Genoract", "slug": "genoract",
-			}})
+			orgsMu.RLock()
+			defer orgsMu.RUnlock()
+			if len(orgsStore) > 0 {
+				c.JSON(http.StatusOK, gin.H{"data": orgsStore[0]})
+			} else {
+				c.JSON(http.StatusOK, gin.H{"data": gin.H{
+					"id": "genoract", "name": "Genoract", "slug": "genoract",
+				}})
+			}
 		})
 		api.GET("/organizations", func(c *gin.Context) {
-			c.JSON(http.StatusOK, gin.H{"data": []gin.H{
-				{"id": "genoract", "name": "Genoract", "slug": "genoract"},
-			}})
+			orgsMu.RLock()
+			defer orgsMu.RUnlock()
+			c.JSON(http.StatusOK, gin.H{"data": orgsStore})
 		})
 
 		// Protected routes
@@ -234,9 +248,26 @@ func Run() {
 
 			// Organizations (protected, not admin-only)
 			protected.POST("/organizations", func(c *gin.Context) {
-				c.JSON(http.StatusOK, gin.H{"data": gin.H{
-					"id": "genoract", "name": "Genoract", "slug": "genoract",
-				}})
+				var req struct {
+					Name string `json:"name"`
+					Slug string `json:"slug"`
+				}
+				c.ShouldBindJSON(&req)
+				if req.Name == "" {
+					req.Name = "Genoract"
+				}
+				if req.Slug == "" {
+					req.Slug = "genoract"
+				}
+				org := gin.H{
+					"id":   fmt.Sprintf("org_%x", time.Now().UnixMilli()),
+					"name": req.Name,
+					"slug": req.Slug,
+				}
+				orgsMu.Lock()
+				orgsStore = append(orgsStore, org)
+				orgsMu.Unlock()
+				c.JSON(http.StatusOK, gin.H{"data": org})
 			})
 
 			// Users roles (hardcoded for frontend compatibility)
